@@ -1,11 +1,6 @@
 import os
 import numpy as np
 from astropy.io import fits
-from astropy.visualization import astropy_mpl_style
-import matplotlib.pyplot as plt
-from astropy.convolution import Moffat2DKernel
-from scipy.signal import convolve as scipy_convolve
-plt.style.use(astropy_mpl_style)
 
 def calibrate(img, bias, dark, flat):
     """ Image (img) calibration using a bias frame, a dark frame and a flat frame
@@ -18,8 +13,8 @@ def calibrate(img, bias, dark, flat):
     """
     #clean_image = (img - dark) * np.mean(flat - dark) / (flat - dark) # source: https://en.wikipedia.org/wiki/Flat-field_correction
     #clean_image = (img - flat - bias) / np.mean(dark)
-    flat = flat - bias
-    flat = flat + np.ones(shape=np.shape(flat1)) # to avoid a zero, no difference in final result
+    # flat = flat - bias
+    # flat = flat + np.abs(np.min(flat)) * np.ones(shape=np.shape(flat)) # to avoid a zero, no difference in final result
     flat = flat / np.mean(flat)
     clean_image = (img - dark) / flat # source: http://spiff.rit.edu/classes/phys445/lectures/darkflat/darkflat.html
     return clean_image
@@ -31,11 +26,11 @@ def averageImages(path_to_images):
     return: matrix of image
     """
     N = len(path_to_images)
-    with fits.getdata(path[0]) as img:
-        final_img = np.ndarray(shape=np.shape(img))
+    with fits.open(path_to_images[0]) as file:
+        final_img = np.ndarray(shape=np.shape(file[0].data))
     for path in path_to_images:
-        with fits.getdata(path) as img:
-            final_img += img/N
+        with fits.open(path) as file:
+            final_img += file[0].data/N
     return final_img
 
 def averageFolder(path_to_folder):
@@ -49,3 +44,11 @@ def averageFolder(path_to_folder):
         if file.endswith(".fit"):
             path_to_images.append(os.path.join(path_to_folder, file))
     return averageImages(path_to_images)
+
+def signalToNoiseRatio(img):
+    """ Compute the signal to noise ratio of an image
+        Source: https://www.stsci.edu/instruments/wfpc2/Wfpc2_hand_current/ch6_exposuretime6.html
+    : img: matrix of img (calibrated is best)
+    return: scalar between 0 and 1
+    """
+    return 0
