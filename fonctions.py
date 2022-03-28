@@ -13,7 +13,7 @@ def calibrate(img, bias, dark, flat):
     """
     #clean_image = (img - dark) * np.mean(flat - dark) / (flat - dark) # source: https://en.wikipedia.org/wiki/Flat-field_correction
     #clean_image = (img - flat - bias) / np.mean(dark)
-    # flat = flat - bias
+    flat = flat - bias
     # flat = flat + np.abs(np.min(flat)) * np.ones(shape=np.shape(flat)) # to avoid a zero, no difference in final result
     flat = flat / np.mean(flat)
     clean_image = (img - dark) / flat # source: http://spiff.rit.edu/classes/phys445/lectures/darkflat/darkflat.html
@@ -47,7 +47,7 @@ def averageFolder(path_to_folder):
 
 def signalToNoiseRatio(img):
     """ Compute the signal to noise ratio of an image
-        Source: https://www.stsci.edu/instruments/wfpc2/Wfpc2_hand_current/ch6_exposuretime6.html
+        Source: http://slittlefair.staff.shef.ac.uk/teaching/phy217/lectures/instruments/L14/index.html
     : img: matrix of img (calibrated is best)
     return: scalar between 0 and 1
     """
