@@ -45,10 +45,17 @@ def averageFolder(path_to_folder):
             path_to_images.append(os.path.join(path_to_folder, file))
     return averageImages(path_to_images)
 
-def signalToNoiseRatio(img):
+def signalToNoiseRatio(img, dark, bias, fl):
     """ Compute the signal to noise ratio of an image
-        Source: http://slittlefair.staff.shef.ac.uk/teaching/phy217/lectures/instruments/L14/index.html
+        Sources: http://slittlefair.staff.shef.ac.uk/teaching/phy217/lectures/instruments/L14/index.html
+                https://www.ucolick.org/~bolte/AY257/s_n.pdf
     : img: matrix of img (calibrated is best)
     return: scalar between 0 and 1
     """
+    inverse_gain = 50000/(2**16 -1) #number of e- per data number, data from the camera documentation
+    std_devitation = np.sqrt(N/inverse_gain)
+    n_pix = np.shape(img)[0]*np.shape(img)[1]
+    RN = 3.3 # from the camera documentation
+    sigma_RN = np.sqrt(n_pix * RN**2)
+    sigma_dark = np.sqrt()
     return 0
