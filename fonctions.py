@@ -4,23 +4,21 @@ from astropy.io import fits
 
 
 def calibrate(img, bias, dark, flat):
-    """ Image (img) calibration using a bias frame, a dark frame and a flat frame
+    """ Image (img) calibration using a bias frame, a dark frame and a flat frame, the last three being average of multiple images
     : img: raw image of interest
       bias: bias image (shortest exposure of nothing) --> readout noise
-      dark: dark image (same exposure time as img, but of nothing) --> thermal noise
+      dark: dark image (same exposure time as img, but of pure darkness) --> thermal noise & quantum fluctuations
       flat: flat image (image to correct for vignetting)
       
       return: matrix of image
     """
     #clean_image = (img - dark) * np.mean(flat - dark) / (flat - dark) # source: https://en.wikipedia.org/wiki/Flat-field_correction
-    #clean_image = (img - flat - bias) / np.mean(dark)
     flat = flat - bias
     # to avoid a zero, no difference in final result
     flat = flat + (np.abs(np.min(flat))+1) * np.ones(shape=np.shape(flat))
     flat = flat / np.mean(flat)
     # source: http://spiff.rit.edu/classes/phys445/lectures/darkflat/darkflat.html
     clean_image = (img - bias) / flat
-    #clean_image = img/flat * np.mean(flat)
     return clean_image
 
 
