@@ -21,7 +21,6 @@ def calibrate(img, bias, dark, flat):
     clean_image = (img - bias) / flat
     return clean_image
 
-
 def averageImages(path_to_images):
     """ Average the images
     : path_to_images: list of strings indicating the paths to .fit images
@@ -36,7 +35,6 @@ def averageImages(path_to_images):
             final_img += file[0].data/N
     return final_img
 
-
 def averageFolder(path_to_folder):
     """ Average image of all the .fit images in folder
     : path_to_folder: string of path to folder
@@ -48,3 +46,21 @@ def averageFolder(path_to_folder):
         if file.endswith(".fit"):
             path_to_images.append(os.path.join(path_to_folder, file))
     return averageImages(path_to_images)
+
+# The 2D Gaussian distribution function
+def gaussian2D(xy, x0, y0, sigma_x, sigma_y, A=1, theta=0):
+    """ Gaussian in 2D with maximum at (x0, y0) of amplitude A and std deviation (sigma_x, sigma_y) rotated around an angle theta
+    : (x,y): position the function is evaluated at
+      (x0, y0): center of gaussian
+      (sigma_x, sigma_y): std deviation along both axes
+      A: amplitude, if -1 then normalized to 1 (-1 by default)
+      theta: angle of rotation (radian) (0 by default)
+    return: scalar
+    """
+    (x, y) = np.asarray(xy).reshape(2, int(np.shape(xy)[0]/2))
+    a = np.cos(theta)**2/(2*sigma_x**2) + np.sin(theta)**2/(2*sigma_y**2)
+    b = -np.sin(2*theta)/(4*sigma_x**2) + np.sin(2*theta)**2/(4*sigma_y**2)
+    c = np.sin(theta)**2/(2*sigma_x**2) + np.cos(theta)**2/(2*sigma_y**2)
+    r = np.exp(-(a*(x-x0)**2 + 2*b*(x-x0)*(y-y0) + c*(y-y0)**2))
+    print(np.sum(r))
+    return A*r/np.sum(r)
