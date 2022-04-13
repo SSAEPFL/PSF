@@ -1,7 +1,8 @@
 import os
 import numpy as np
 from astropy.io import fits
-
+import scipy.optimize as opt
+from photutils.segmentation import make_source_mask
 
 def calibrate(img, bias, dark, flat):
     """ Image (img) calibration using a bias frame, a dark frame and a flat frame, the last three being average of multiple images
@@ -64,3 +65,52 @@ def gaussian2D(xy, x0, y0, sigma_x, sigma_y, A=1, theta=0):
     r = np.exp(-(a*(x-x0)**2 + 2*b*(x-x0)*(y-y0) + c*(y-y0)**2))
     print(np.sum(r))
     return A*r/np.sum(r)
+
+def coordinatesOfStars(image):
+    """ Get list of coordinates (i,j) of the sources in the image
+    : image: matrix of an image
+    
+    return: list of coordinates
+    """
+    mask = make_source_mask(image, nsigma=5, npixels=5, dilate_size=5)
+    i = 5
+    list_of_coordinates = []
+    while i < (np.shape(mask)[0]-5):
+        j = 5
+        while j < (np.shape(mask)[1]-9):
+
+            if mask[i, j-5:j+5].all():
+                list_of_coordinates.append((i, j))
+                j += 9
+                #print(inverted_masked_image[i:i+10, j:j+10])
+            else:
+                j += 1
+        i += 1
+        
+    return list_of_coordinates
+
+def fitForAllStars(image, list_of_coordinates):
+    parameters = []
+    for coords in list_of_coordinates:
+        i_begin = np.max([0, coords[0]-20])
+        i_end = np.min([np.shape(image)[0], coords[0]+20])
+        j_begin = np.max([0, coords[1]-20])
+        j_end = np.min([np.shape(image)[1], coords[1]+20])
+
+        outcut = image[i_begin:i_end, j_begin:j_end]
+        outcut = outcut/np.sum(outcut)
+
+        initial_guess = (0, 0, 1, 1, 0.1, 0)
+        xs = np.linspace(-5, 5, np.shape(outcut)[1])
+        ys = np.linspace(-5, 5, np.shape(outcut)[0])
+        xy = np.meshgrid(xs, ys)
+        xy = np.ravel(xy)
+        try:
+            params, _ = opt.curve_fit(
+                gaussian2D, xy, np.ravel(outcut), p0=initial_guess)
+        except RuntimeError:
+            params = [0, 0, 0, 0, 0]
+        parameters.append(params)
+    #interpolated_data = gaussian2D(xy, params[0], params[1], params[2], params[3], params[4], params[5])
+    return parameters
+
