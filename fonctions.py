@@ -70,7 +70,6 @@ def gaussian2D(xy, x0, y0, sigma_x, sigma_y, A=1, theta=0):
     b = -np.sin(2*theta)/(4*sigma_x**2) + np.sin(2*theta)**2/(4*sigma_y**2)
     c = np.sin(theta)**2/(2*sigma_x**2) + np.cos(theta)**2/(2*sigma_y**2)
     r = np.exp(-(a*(x-x0)**2 + 2*b*(x-x0)*(y-y0) + c*(y-y0)**2))
-    print(np.sum(r))
     return A*r/np.sum(r)
 
 def coordinatesOfStars(image):
@@ -79,21 +78,26 @@ def coordinatesOfStars(image):
     
     return: list of coordinates
     """
-    mask = make_source_mask(image, nsigma=5, npixels=5, dilate_size=5)
-    i = 5
+    mask = make_source_mask(image, nsigma=7, npixels=20, dilate_size=1)
+    i = 10
     list_of_coordinates = []
-    while i < (np.shape(mask)[0]-5):
-        j = 5
-        while j < (np.shape(mask)[1]-9):
-
-            if mask[i, j-5:j+5].all():
+    inverted_masked_image = np.ma.array(image, mask=np.logical_not(mask), fill_value=np.NaN)
+    inverted_masked_image_filled = inverted_masked_image.filled()
+    while i < (np.shape(mask)[0]-10):
+        j = 10
+        while j < (np.shape(mask)[1]-10):
+            found_something = False
+            if not (np.isnan(inverted_masked_image_filled[i-5:i+5, j-5:j+5])).any() and (i < 2100 or i > 2300 or j < 3000 or j > 3300):
                 list_of_coordinates.append((i, j))
-                j += 9
+                found_something = True
+                j += 20
                 #print(inverted_masked_image[i:i+10, j:j+10])
             else:
                 j += 1
-        i += 1
-        
+        if found_something:
+            i += 10
+        else:
+            i += 1  
     return list_of_coordinates
 
 def fitForAllStars(image, list_of_coordinates):
@@ -108,8 +112,10 @@ def fitForAllStars(image, list_of_coordinates):
         outcut = outcut/np.sum(outcut)
 
         initial_guess = (0, 0, 1, 1, 0.1, 0)
-        xs = np.linspace(-5, 5, np.shape(outcut)[1])
-        ys = np.linspace(-5, 5, np.shape(outcut)[0])
+        len_i = i_end - i_begin
+        len_j = j_end - j_begin
+        xs = np.linspace(-int(len_i/2), int(len_i/2), np.shape(outcut)[1])
+        ys = np.linspace(-int(len_j/2), int(len_j/2), np.shape(outcut)[0])
         xy = np.meshgrid(xs, ys)
         xy = np.ravel(xy)
         try:
@@ -136,9 +142,9 @@ def trackModel(shape, i0, j0, iend, jend, width, amplitude):
     # angle of the track w.r.t. horizontal line
     alpha = np.arctan((iend - i0)/(jend - j0))
     # projection of the width along the vertical axis
-    width_i = int(width/2 * np.cos(alpha))
+    width_i = int(width/2 * np.cos(alpha))-1
     # projection of the width along the horizontal axis
-    width_j = int(width/2 * np.sin(alpha))
+    width_j = int(width/2 * np.sin(alpha))-1
     for t in range(int(np.floor(L))):  # along the track
         i = int(i0 + (iend - i0)/L * t)
         j = int(j0 + (jend - j0)/L * t)
