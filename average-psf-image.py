@@ -37,11 +37,11 @@ if True:
         n_old, n = 0, 1000
         while n < len(list_of_coordinates):
             print('\tn_old and n : ', n_old, n)
-            parameters = fitForAllStars(img, list_of_coordinates[n_old:n-1])
+            parameters += fitForAllStars(img, list_of_coordinates[n_old:n-1])
             n_old = n
             n += 1000
         if n > len(list_of_coordinates):
-            parameters = fitForAllStars(img, list_of_coordinates[n_old:])  
+            parameters += fitForAllStars(img, list_of_coordinates[n_old:])  
             
     print('Parameters[10]', parameters[10])     
     print('len parameters', len(parameters))
