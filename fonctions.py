@@ -9,6 +9,7 @@ import numpy as np
 from astropy.io import fits
 from astropy.visualization import astropy_mpl_style
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 plt.style.use(astropy_mpl_style)
 
 def calibrate(img, bias, dark, flat):
@@ -70,7 +71,10 @@ def gaussian2D(xy, x0, y0, sigma_x, sigma_y, A=1, theta=0):
     b = -np.sin(2*theta)/(4*sigma_x**2) + np.sin(2*theta)**2/(4*sigma_y**2)
     c = np.sin(theta)**2/(2*sigma_x**2) + np.cos(theta)**2/(2*sigma_y**2)
     r = np.exp(-(a*(x-x0)**2 + 2*b*(x-x0)*(y-y0) + c*(y-y0)**2))
-    return A*r/np.sum(r)
+    if np.sum(r) != 0:
+        return A*r/np.sum(r)
+    else:
+        return np.inf
 
 def coordinatesOfStars(image):
     """ Get list of coordinates (i,j) of the sources in the image
@@ -102,7 +106,7 @@ def coordinatesOfStars(image):
 
 def fitForAllStars(image, list_of_coordinates):
     parameters = []
-    for coords in list_of_coordinates:
+    for coords in tqdm(list_of_coordinates, desc='stars'):
         i_begin = np.max([0, coords[0]-20])
         i_end = np.min([np.shape(image)[0], coords[0]+20])
         j_begin = np.max([0, coords[1]-20])
@@ -215,10 +219,58 @@ def logPrior(theta):
             return -np.inf
     else:
         raise ValueError('Not the right number of arguments to unpack in theta')
-    
+
 
 def logProbability(theta, y, yerr, PSF, simple=False):
     lp = logPrior(theta)
     if np.isfinite(lp):
         return lp + logLikelihood(theta, y, yerr, PSF, simple)
     return -np.inf
+
+
+def folderPSF(path_to_folder, path_bias='bias', path_dark='dark', path_flats='flats'):
+    """
+    Computes the PSF of all stars in all images in folder, after having calibrated the images. Returns lists of sigma_x, sigma_y and theta
+    """
+    bias = averageFolder(path_bias)
+    dark = averageFolder(path_dark)
+    flat = averageFolder(path_flats)
+
+    # get name of all files in folder
+    image_names = []
+    for file in os.listdir(path_to_folder):
+        if file.endswith(".fit"):
+            image_names.append(os.path.join(path_to_folder, file))
+
+    # the values for each image
+    sigma_x = []
+    sigma_y = []
+    theta = []
+
+    parameters = []
+    for image_name in tqdm(image_names, desc='image'):
+        img = fits.getdata(image_name)  # load image
+        img = calibrate(img, bias, dark, flat)  # calibrate image
+        list_of_coordinates = coordinatesOfStars(img)  # find all the stars in the image
+        parameters += fitForAllStars(img, list_of_coordinates)
+
+    print('Parameters[10]', parameters[10])
+    print('len parameters', len(parameters))
+
+    sigma_x = [x[2] for x in parameters]
+    sigma_y = [x[3] for x in parameters]
+    theta = [x[4] for x in parameters]
+
+    return sigma_x, sigma_y, theta
+
+
+def loadParameters(angle_and_time):
+    """
+    Load the raw data obtained from the analysis of 
+    """
+    sigma_x = np.array(
+        np.load(angle_and_time + '_sigma_x.npy', allow_pickle=True))
+    sigma_y = np.array(
+        np.load(angle_and_time + '_sigma_y.npy', allow_pickle=True))
+    theta = np.array(np.load(angle_and_time + '_theta.npy', allow_pickle=True))
+    return sigma_x, sigma_y, theta
