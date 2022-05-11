@@ -1,3 +1,6 @@
+from scipy.optimize import OptimizeWarning
+import warnings
+from ast import Try
 import os
 import numpy as np
 from astropy.io import fits
@@ -11,6 +14,8 @@ from astropy.visualization import astropy_mpl_style
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 plt.style.use(astropy_mpl_style)
+
+warnings.simplefilter("error", OptimizeWarning)
 
 def calibrate(img, bias, dark, flat):
     """ Image (img) calibration using a bias frame, a dark frame and a flat frame, the last three being average of multiple images
@@ -126,6 +131,8 @@ def fitForAllStars(image, list_of_coordinates):
             params, _ = opt.curve_fit(
                 gaussian2D, xy, np.ravel(outcut), p0=initial_guess)
         except RuntimeError:
+            params = [0, 0, 0, 0, 0]
+        except OptimizeWarning:
             params = [0, 0, 0, 0, 0]
         parameters.append(params)
     #interpolated_data = gaussian2D(xy, params[0], params[1], params[2], params[3], params[4], params[5])
@@ -253,9 +260,6 @@ def folderPSF(path_to_folder, path_bias='bias', path_dark='dark', path_flats='fl
         img = calibrate(img, bias, dark, flat)  # calibrate image
         list_of_coordinates = coordinatesOfStars(img)  # find all the stars in the image
         parameters += fitForAllStars(img, list_of_coordinates)
-
-    print('Parameters[10]', parameters[10])
-    print('len parameters', len(parameters))
 
     sigma_x = [x[2] for x in parameters]
     sigma_y = [x[3] for x in parameters]
