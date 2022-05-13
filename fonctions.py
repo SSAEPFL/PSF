@@ -188,7 +188,6 @@ def reducedGoodnessModel(outcut, model, error):
     simulated = np.ravel(model)
     # simply chi^2 test, from wikipedia
     chi2 = np.sum((simulated - measured)**2/np.ravel(error))
-    p = stats.chi2.cdf(chi2, len(simulated)-6)  # assuming 6 parameters
     return chi2/len(simulated)
 
 def logLikelihood(theta, y, yerr, PSF, simple=False):
