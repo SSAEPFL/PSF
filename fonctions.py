@@ -111,7 +111,7 @@ def coordinatesOfStars(image):
 
 def fitForAllStars(image, list_of_coordinates):
     parameters = []
-    for coords in tqdm(list_of_coordinates, desc='stars'):
+    for coords in tqdm(list_of_coordinates, desc='stars', leave=False):
         i_begin = np.max([0, coords[0]-20])
         i_end = np.min([np.shape(image)[0], coords[0]+20])
         j_begin = np.max([0, coords[1]-20])
@@ -254,7 +254,7 @@ def folderPSF(path_to_folder, path_bias='bias', path_dark='dark', path_flats='fl
     theta = []
 
     parameters = []
-    for image_name in tqdm(image_names, desc='image'):
+    for image_name in tqdm(image_names, desc='image', leave=False):
         img = fits.getdata(image_name)  # load image
         img = calibrate(img, bias, dark, flat)  # calibrate image
         list_of_coordinates = coordinatesOfStars(img)  # find all the stars in the image
