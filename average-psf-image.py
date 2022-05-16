@@ -3,6 +3,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 from fonctions import *
 plt.style.use(astropy_mpl_style)
+from multiprocessing import Pool
+
+def treatFolder(folder, master_dir="../images/"):
+    sigma_x, sigma_y, theta = folderPSF(folder, path_flats=(master_dir+'/flats'))
+    # save the raw data to avoid running the code againg
+    with open('data/' + folder + "_sigma_x.npy", "wb") as file:
+        np.save(file, np.asarray(sigma_x))
+    with open('data/' + folder + "_sigma_y.npy", "wb") as file:
+        np.save(file, np.asarray(sigma_y))
+    with open('data/' + folder + "_theta.npy", "wb") as file:
+        np.save(file, np.asarray(theta))
+
 
 if __name__ == "__main__":
     master_dir = "../images/"  # path to folder containing folders
@@ -11,16 +23,11 @@ if __name__ == "__main__":
         if os.path.isdir(master_dir + f):
             folder_names.append(os.path.join(master_dir, f))
 
-    for folder in tqdm(folder_names):
-        sigma_x, sigma_y, theta = folderPSF(folder, path_flats=(master_dir+'/flats'))
-        # save the raw data to avoid running the code againg
-        loc = 'data/'  # folder to save the npy files
-        with open(loc + folder + "_sigma_x.npy", "wb") as file:
-            np.save(file, np.asarray(sigma_x))
-        with open(loc + folder + "_sigma_y.npy", "wb") as file:
-            np.save(file, np.asarray(sigma_y))
-        with open(loc + folder + "_theta.npy", "wb") as file:
-            np.save(file, np.asarray(theta))
+    #for folder in tqdm(folder_names):
+    #    treatFolder(folder)
+    pool = Pool()
+    pool.map(treatFolder, folder_names)
+    
 
     # load the parameters
     sigma_x, sigma_y, theta = loadParameters('data/'+folder_names[0])
