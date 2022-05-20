@@ -22,6 +22,8 @@ if __name__ == "__main__":
     for f in os.listdir(master_dir):
         if os.path.isdir(master_dir + f):
             folder_names.append(os.path.join(master_dir, f))
+            
+    print(folder_names)
 
     #for folder in tqdm(folder_names):
     #    treatFolder(folder)
