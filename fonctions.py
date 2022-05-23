@@ -179,7 +179,6 @@ def reducedGoodnessModel(outcut, model, error):
     Return: chi2: value of the chi2-test
             p: p-value of the chi2-test, assuming track model 6 parameters
     """
-    #return chisquare(np.ravel(outcut), np.ravel(model), 6)
     if np.shape(outcut) != np.shape(model):
         raise ValueError('Not same shapes')
     mask = make_source_mask(outcut, nsigma=4, npixels=1000, dilate_size=2)
@@ -190,7 +189,7 @@ def reducedGoodnessModel(outcut, model, error):
     chi2 = np.sum((simulated - measured)**2/np.ravel(error))
     return chi2/len(simulated)
 
-def logLikelihood(theta, y, yerr, PSF, simple=False):
+def logLikelihood(theta, y, yerr, PSF):
     """ Computes the log likelihood of the model specified by the parameters theta for the variables x (raveled coordinates of the outcut) and the measurements y (raveled outcut)
         theta: list of parameters (i0, j0, iend, jend, width, amplitude)
         x: indices of the raveled outcut model
@@ -198,10 +197,10 @@ def logLikelihood(theta, y, yerr, PSF, simple=False):
     Return: -0.5*chi^2
     """
     shape = np.shape(y)
-    if simple:
+    if len(theta) == 4:
         i0, iend, width, amplitude = theta
         y_model = simplerTrackModel(shape, i0, iend, width, amplitude)
-    else:
+    elif len(theta) == 6:
         i0, j0, iend, jend, width, amplitude = theta
         y_model = trackModel(shape, i0, j0, iend, jend, width, amplitude)
     return -0.5*reducedGoodnessModel(y, convolve2d(y_model, PSF, 'same'), yerr)
@@ -227,10 +226,10 @@ def logPrior(theta):
         raise ValueError('Not the right number of arguments to unpack in theta')
 
 
-def logProbability(theta, y, yerr, PSF, simple=False):
+def logProbability(theta, y, yerr, PSF):
     lp = logPrior(theta)
     if np.isfinite(lp):
-        return lp + logLikelihood(theta, y, yerr, PSF, simple)
+        return lp + logLikelihood(theta, y, yerr, PSF)
     return -np.inf
 
 
