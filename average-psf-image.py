@@ -5,8 +5,8 @@ from fonctions import *
 plt.style.use(astropy_mpl_style)
 from multiprocessing import Pool
 
-def treatFolder(folder, master_dir="../images/"):
-    sigma_x, sigma_y, theta = folderPSF(folder, path_flats=(master_dir+'/flats'))
+def treatFolder(folder, master_dir="/Users/lucahartman/Pictures/diff-temps/"):
+    sigma_x, sigma_y, theta = folderPSF(master_dir + folder, path_flats='flat')
     # save the raw data to avoid running the code againg
     with open('data/' + folder + "_sigma_x.npy", "wb") as file:
         np.save(file, np.asarray(sigma_x))
@@ -17,12 +17,11 @@ def treatFolder(folder, master_dir="../images/"):
 
 
 if __name__ == "__main__":
-    master_dir = "../images/"  # path to folder containing folders
+    master_dir = "/Users/lucahartman/Pictures/diff-temps/"  # path to folder containing folders
     folder_names = []  # list of path to folders
     for f in os.listdir(master_dir):
         if os.path.isdir(master_dir + f):
-            folder_names.append(os.path.join(master_dir, f))
-            
+            folder_names.append(f)       
     print(folder_names)
 
     #for folder in tqdm(folder_names):
