@@ -177,17 +177,34 @@ def reducedGoodnessModel(outcut, model, error):
         outcut: part of image containing the track
         model: track model
     Return: chi2: value of the chi2-test
-            p: p-value of the chi2-test, assuming track model 6 parameters
     """
     if np.shape(outcut) != np.shape(model):
         raise ValueError('Not same shapes')
     mask = make_source_mask(outcut, nsigma=4, npixels=1000, dilate_size=2)
     track = np.ma.array(outcut, mask=np.logical_not(mask), fill_value=0)
-    measured = np.ravel(track.filled())
-    simulated = np.ravel(model)
-    # simply chi^2 test, from wikipedia
-    chi2 = np.sum((simulated - measured)**2/np.ravel(error))
-    return chi2/len(simulated)
+    observed = np.ravel(track)
+    expected = np.ravel(model)
+    # simply chi^2 test, from https://arxiv.org/pdf/1012.3754.pdf
+    chi2 = np.nansum(((observed - expected)/np.ravel(error))**2)
+    return chi2/len(observed)
+
+
+def pvalue(outcut, model, error):
+    """ P-value of the chi^2 test
+        outcut: part of image containing the track, observed values
+        model: part of image containing modelled track, expected values
+    Return : p: p-value of the chi2 test
+    """
+    if np.shape(outcut) != np.shape(model):
+        raise ValueError('Not same shapes')
+    mask = make_source_mask(outcut, nsigma=4, npixels=1000, dilate_size=2)
+    track = np.ma.array(outcut, mask=np.logical_not(mask), fill_value=0)
+    observed = np.ravel(track)
+    expected = np.ravel(model)
+    # simply chi^2 test, from https://arxiv.org/pdf/1012.3754.pdf
+    chi2 = np.nansum(((observed - expected)/np.ravel(error))**2)
+    return stats.chi2.sf(chi2, len(observed)-4)
+
 
 def logLikelihood(theta, y, yerr, PSF):
     """ Computes the log likelihood of the model specified by the parameters theta for the variables x (raveled coordinates of the outcut) and the measurements y (raveled outcut)
@@ -203,7 +220,7 @@ def logLikelihood(theta, y, yerr, PSF):
     elif len(theta) == 6:
         i0, j0, iend, jend, width, amplitude = theta
         y_model = trackModel(shape, i0, j0, iend, jend, width, amplitude)
-    return -0.5*reducedGoodnessModel(y, convolve2d(y_model, PSF, 'same'), yerr)
+    return -0.5*reducedGoodnessModel(y, convolve2d(y_model, PSF, 'same')+np.mean(y), yerr)
 
 
 def logPrior(theta):
