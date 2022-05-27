@@ -32,7 +32,7 @@ for image_name in tqdm(image_names, desc='Image names', leave=True):
         i_end = np.min([np.shape(img)[0], coords[0]+20])
         j_begin = np.max([0, coords[1]-20])
         j_end = np.min([np.shape(img)[1], coords[1]+20])
-        if parameters[2] < 30 and parameters[3] < 30:
+        if parameters[i][2] < 30 and parameters[i][3] < 30:
             sigma_x_map[i_begin:i_end, j_begin:j_end] = parameters[i][2]
             sigma_y_map[i_begin:i_end, j_begin:j_end] = parameters[i][3]
             theta_map[i_begin:i_end, j_begin:j_end] = parameters[i][4]
