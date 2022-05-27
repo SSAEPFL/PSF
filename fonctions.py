@@ -29,8 +29,8 @@ def calibrate(img, bias, dark, flat):
     #clean_image = (img - dark) * np.mean(flat - dark) / (flat - dark) # source: https://en.wikipedia.org/wiki/Flat-field_correction
     flat = flat - bias
     # to avoid a zero, no difference in final result
-    flat = flat + (np.abs(np.min(flat))+1) * np.ones(shape=np.shape(flat))
-    flat = flat / np.mean(flat)
+    #flat = flat + (np.abs(np.min(flat))+1) * np.ones(shape=np.shape(flat))
+    flat /= np.mean(flat)
     # source: http://spiff.rit.edu/classes/phys445/lectures/darkflat/darkflat.html
     clean_image = (img - bias) / flat
     return clean_image
@@ -134,8 +134,8 @@ def fitForAllStars(image, list_of_coordinates):
             params = [0, 0, 0, 0, 0]
         except OptimizeWarning:
             params = [0, 0, 0, 0, 0]
-        parameters.append(params)
-    #interpolated_data = gaussian2D(xy, params[0], params[1], params[2], params[3], params[4], params[5])
+        if params[2] < 30 and params[3] < 30:
+            parameters.append(params)
     return parameters
 
 # fonctions to create and fit model of track
