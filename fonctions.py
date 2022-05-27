@@ -1,3 +1,4 @@
+from concurrent.futures.process import EXTRA_QUEUED_CALLS
 from scipy.optimize import OptimizeWarning
 import warnings
 from ast import Try
@@ -160,7 +161,10 @@ def trackModel(shape, i0, j0, iend, jend, width, amplitude):
         i = int(i0 + (iend - i0)/L * t)
         j = int(j0 + (jend - j0)/L * t)
         # for now: amplitude inside all the track +- width, maybe gaussian distribution ?
-        outcut[i, j] = amplitude
+        if 0 <= i < shape[0] and 0 <= j < shape[1]:
+            outcut[i, j] = amplitude
+        else:
+            raise RuntimeError('Begin or start point larger than matrix size')
         if width_i > 0 and (i - width_i) >= 0 and (i + width_i) <= shape[0]:
             outcut[i-width_i:i+width_i, j] = amplitude
         if width_j > 0 and (j - width_j) >= 0 and (j + width_j) <= shape[1]:
@@ -169,7 +173,10 @@ def trackModel(shape, i0, j0, iend, jend, width, amplitude):
 
 def simplerTrackModel(shape, i0, iend, width, amplitude):
     """ A simpler model of a track, where the start and end of the track is on the border """
-    return trackModel(shape, i0, 0, iend, shape[1], width, amplitude)
+    try:
+       return trackModel(shape, i0, 0, iend, shape[1], width, amplitude)
+    except RuntimeError:
+        raise RuntimeError('Begin or start point larger than matrix size')
 
 
 def reducedGoodnessModel(outcut, model, error):
@@ -216,10 +223,16 @@ def logLikelihood(theta, y, yerr, PSF):
     shape = np.shape(y)
     if len(theta) == 4:
         i0, iend, width, amplitude = theta
-        y_model = simplerTrackModel(shape, i0, iend, width, amplitude)
+        try:
+            y_model = simplerTrackModel(shape, i0, iend, width, amplitude)
+        except RuntimeError:
+            return -np.inf
     elif len(theta) == 6:
         i0, j0, iend, jend, width, amplitude = theta
-        y_model = trackModel(shape, i0, j0, iend, jend, width, amplitude)
+        try:
+            y_model = trackModel(shape, i0, j0, iend, jend, width, amplitude)
+        except RuntimeError:
+            return -np.inf
     return -0.5*reducedGoodnessModel(y, convolve2d(y_model, PSF, 'same')+np.mean(y), yerr)
 
 
