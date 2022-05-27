@@ -129,7 +129,7 @@ def fitForAllStars(image, list_of_coordinates):
         xy = np.ravel(xy)
         try:
             params, _ = opt.curve_fit(
-                gaussian2D, xy, np.ravel(outcut), p0=initial_guess)
+                gaussian2D, xy, np.ravel(outcut), p0=initial_guess, bounds=([np.min(xs), np.min(ys), 0, 0, 0, -np.inf], [np.max(xs), np.max(ys), 50, 50, np.inf, np.inf]))
         except RuntimeError:
             params = [0, 0, 0, 0, 0]
         except OptimizeWarning:
