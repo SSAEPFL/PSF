@@ -165,9 +165,9 @@ def trackModel(shape, i0, j0, iend, jend, width, amplitude):
             outcut[i, j] = amplitude
         else:
             raise RuntimeError('Begin or start point larger than matrix size')
-        if width_i > 0 and (i - width_i) >= 0 and (i + width_i) <= shape[0]:
+        if width_i > 0 and (i - width_i) >= 0 and (i + width_i) < shape[0]:
             outcut[i-width_i:i+width_i, j] = amplitude
-        if width_j > 0 and (j - width_j) >= 0 and (j + width_j) <= shape[1]:
+        if width_j > 0 and (j - width_j) >= 0 and (j + width_j) < shape[1]:
             outcut[i, j-width_j:j+width_j]
     return outcut
 
@@ -213,7 +213,7 @@ def pvalue(outcut, model, error):
     return stats.chi2.sf(chi2, len(observed)-4)
 
 
-def logLikelihood(theta, y, yerr, PSF):
+def logLikelihood(theta, y, yerr, PSF, shift=0):
     """ Computes the log likelihood of the model specified by the parameters theta for the variables x (raveled coordinates of the outcut) and the measurements y (raveled outcut)
         theta: list of parameters (i0, j0, iend, jend, width, amplitude)
         x: indices of the raveled outcut model
@@ -233,7 +233,7 @@ def logLikelihood(theta, y, yerr, PSF):
             y_model = trackModel(shape, i0, j0, iend, jend, width, amplitude)
         except RuntimeError:
             return -np.inf
-    return -0.5*reducedGoodnessModel(y, convolve2d(y_model, PSF, 'same')+np.mean(y), yerr)
+    return -0.5*reducedGoodnessModel(y, convolve2d(y_model, PSF, 'same')+shift, yerr)
 
 
 def logPrior(theta):
@@ -242,13 +242,13 @@ def logPrior(theta):
     """
     if len(theta) == 6:
         i0, j0, iend, jend, width, amplitude = theta
-        if 0 <= i0 <= 500 and 0 <= iend <= 500 and 0 <= j0 <= 500 and 0 <= jend <= 500 and 0 < width < 10 and 0 < amplitude < 65535:
+        if 0 <= i0 < 500 and 0 <= iend < 500 and 0 <= j0 < 500 and 0 <= jend < 500 and 0 < width < 10 and 0 < amplitude < 65535:
             return 0  # log(probability) up to a constant
         else:
             return -np.inf
     elif len(theta) == 4:
         i0, iend, width, amplitude = theta
-        if 0 <= i0 <= 500 and 0 <= iend <= 500 and 0 < width < 10 and 0 < amplitude < 65535:
+        if 0 <= i0 < 500 and 0 <= iend < 500 and 0 < width < 10 and 0 < amplitude < 65535:
             return 0  # log(probability) up to a constant
         else:
             return -np.inf
@@ -256,10 +256,10 @@ def logPrior(theta):
         raise ValueError('Not the right number of arguments to unpack in theta')
 
 
-def logProbability(theta, y, yerr, PSF):
+def logProbability(theta, y, yerr, PSF, shift=0):
     lp = logPrior(theta)
     if np.isfinite(lp):
-        return lp + logLikelihood(theta, y, yerr, PSF)
+        return lp + logLikelihood(theta, y, yerr, PSF, shift)
     return -np.inf
 
 
