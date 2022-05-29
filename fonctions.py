@@ -266,7 +266,7 @@ def logPrior(theta):
 def logProbability(theta, y, yerr, PSF, shift=0, oversampling=False):
     lp = logPrior(theta)
     if np.isfinite(lp):
-        return lp + logLikelihood(theta, y, yerr, PSF, shift)
+        return lp + logLikelihood(theta, y, yerr, PSF, shift, oversampling)
     return -np.inf
 
 
