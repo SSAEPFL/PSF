@@ -237,9 +237,9 @@ def logLikelihood(theta, y, yerr, PSF, shift=0, oversampling=False):
         except RuntimeError:
             return -np.inf
     if oversampling:
-        outcut = zoom(outcut, 2)  # oversampling fake data
+        y = zoom(y, 2)  # oversampling fake data
         PSF = zoom(PSF, 2)
-        print("it's working")
+        y_model = zoom(y_model, 2)
     return -0.5*reducedGoodnessModel(y, convolve2d(y_model, PSF, 'same')+shift, yerr)
 
 
