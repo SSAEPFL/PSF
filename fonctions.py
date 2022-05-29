@@ -14,6 +14,7 @@ from astropy.io import fits
 from astropy.visualization import astropy_mpl_style
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from scipy.ndimage import zoom
 plt.style.use(astropy_mpl_style)
 
 warnings.simplefilter("error", OptimizeWarning)
@@ -187,9 +188,10 @@ def reducedGoodnessModel(outcut, model, error):
     """
     if np.shape(outcut) != np.shape(model):
         raise ValueError('Not same shapes')
-    mask = make_source_mask(outcut, nsigma=4, npixels=1000, dilate_size=2)
-    track = np.ma.array(outcut, mask=np.logical_not(mask), fill_value=0)
-    observed = np.ravel(track)
+    if np.shape(outcut)[1] >= 1000:
+        mask = make_source_mask(outcut, nsigma=4, npixels=np.shape(outcut)[1], dilate_size=2)
+        outcut = np.ma.array(outcut, mask=np.logical_not(mask), fill_value=0)
+    observed = np.ravel(outcut)
     expected = np.ravel(model)
     # simply chi^2 test, from https://arxiv.org/pdf/1012.3754.pdf
     chi2 = np.nansum(((observed - expected)/np.ravel(error))**2)
@@ -204,16 +206,17 @@ def pvalue(outcut, model, error):
     """
     if np.shape(outcut) != np.shape(model):
         raise ValueError('Not same shapes')
-    mask = make_source_mask(outcut, nsigma=4, npixels=1000, dilate_size=2)
-    track = np.ma.array(outcut, mask=np.logical_not(mask), fill_value=0)
-    observed = np.ravel(track)
+    if np.shape(outcut)[1] >= 1000:
+        mask = make_source_mask(outcut, nsigma=4, npixels=np.shape(outcut)[1], dilate_size=2)
+        outcut = np.ma.array(outcut, mask=np.logical_not(mask), fill_value=0)
+    observed = np.ravel(outcut)
     expected = np.ravel(model)
     # simply chi^2 test, from https://arxiv.org/pdf/1012.3754.pdf
     chi2 = np.nansum(((observed - expected)/np.ravel(error))**2)
     return stats.chi2.sf(chi2, len(observed)-4)
 
 
-def logLikelihood(theta, y, yerr, PSF, shift=0):
+def logLikelihood(theta, y, yerr, PSF, shift=0, oversampling=False):
     """ Computes the log likelihood of the model specified by the parameters theta for the variables x (raveled coordinates of the outcut) and the measurements y (raveled outcut)
         theta: list of parameters (i0, j0, iend, jend, width, amplitude)
         x: indices of the raveled outcut model
@@ -233,6 +236,10 @@ def logLikelihood(theta, y, yerr, PSF, shift=0):
             y_model = trackModel(shape, i0, j0, iend, jend, width, amplitude)
         except RuntimeError:
             return -np.inf
+    if oversampling:
+        outcut = zoom(outcut, 2)  # oversampling fake data
+        PSF = zoom(PSF, 2)
+        print("it's working")
     return -0.5*reducedGoodnessModel(y, convolve2d(y_model, PSF, 'same')+shift, yerr)
 
 
@@ -256,7 +263,7 @@ def logPrior(theta):
         raise ValueError('Not the right number of arguments to unpack in theta')
 
 
-def logProbability(theta, y, yerr, PSF, shift=0):
+def logProbability(theta, y, yerr, PSF, shift=0, oversampling=False):
     lp = logPrior(theta)
     if np.isfinite(lp):
         return lp + logLikelihood(theta, y, yerr, PSF, shift)
