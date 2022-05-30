@@ -195,7 +195,11 @@ def reducedGoodnessModel(outcut, model, error):
     expected = np.ravel(model)
     # simply chi^2 test, from https://arxiv.org/pdf/1012.3754.pdf
     chi2 = np.nansum(((observed - expected)/np.ravel(error))**2)
-    return chi2/len(observed)
+    if not np.isnan(chi2):
+        return chi2/len(observed)
+    else:
+        print('NaN')
+        return np.inf
 
 
 def pvalue(outcut, model, error):
