@@ -89,7 +89,9 @@ def coordinatesOfStars(image):
     
     return: list of coordinates
     """
-    mask = make_source_mask(image, nsigma=7, npixels=20, dilate_size=1)
+    mask1 = make_source_mask(image, nsigma=7, npixels=10, dilate_size=1)
+    mask2 = make_source_mask(image, nsigma=7, npixels=25, dilate_size=1)
+    mask = np.logical_and(mask1, np.logical_not(mask2))
     i = 10
     list_of_coordinates = []
     inverted_masked_image = np.ma.array(image, mask=np.logical_not(mask), fill_value=np.NaN)
@@ -120,7 +122,7 @@ def fitForAllStars(image, list_of_coordinates):
         j_end = np.min([np.shape(image)[1], coords[1]+20])
 
         outcut = image[i_begin:i_end, j_begin:j_end]
-        outcut = outcut/np.sum(outcut)
+        #outcut = outcut/np.sum(outcut)
 
         initial_guess = (0, 0, 1, 1, 0.1, 0)
         len_i = i_end - i_begin
@@ -292,6 +294,7 @@ def folderPSF(path_to_folder, path_bias='bias', path_dark='dark', path_flats='fl
     sigma_x = []
     sigma_y = []
     theta = []
+    A = []
 
     parameters = []
     for image_name in tqdm(image_names, desc='image', leave=False):
@@ -302,8 +305,8 @@ def folderPSF(path_to_folder, path_bias='bias', path_dark='dark', path_flats='fl
 
     sigma_x = [x[2] for x in parameters]
     sigma_y = [x[3] for x in parameters]
-    theta = [x[4] for x in parameters]
-
+    theta = [x[5] for x in parameters]
+    A = [x[4] for x in parameters]
     return sigma_x, sigma_y, theta
 
 
