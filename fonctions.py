@@ -1,3 +1,4 @@
+from astropy.stats import sigma_clipped_stats
 from concurrent.futures.process import EXTRA_QUEUED_CALLS
 from scipy.optimize import OptimizeWarning
 import warnings
@@ -16,6 +17,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from scipy.ndimage import zoom
 plt.style.use(astropy_mpl_style)
+
 
 warnings.simplefilter("error", OptimizeWarning)
 
@@ -94,26 +96,30 @@ def coordinatesOfStars(image):
     mask = np.logical_and(mask1, np.logical_not(mask2))
     i = 10
     list_of_coordinates = []
-    inverted_masked_image = np.ma.array(image, mask=np.logical_not(mask), fill_value=np.NaN)
+    inverted_masked_image = np.ma.array(image, mask=np.logical_not(mask), fill_value=np.nan)
     inverted_masked_image_filled = inverted_masked_image.filled()
     while i < (np.shape(mask)[0]-10):
         j = 10
         while j < (np.shape(mask)[1]-10):
             found_something = False
-            if not (np.isnan(inverted_masked_image_filled[i-5:i+5, j-5:j+5])).any() and (i < 2100 or i > 2300 or j < 3000 or j > 3300):
+            if not (np.isnan(inverted_masked_image_filled[i-2:i+2, j-2:j+2])).any() and (i < 2100 or i > 2300 or j < 3000 or j > 3300):
                 list_of_coordinates.append((i, j))
                 found_something = True
-                j += 20
+                j += 7
                 #print(inverted_masked_image[i:i+10, j:j+10])
             else:
                 j += 1
         if found_something:
-            i += 10
+            i += 4
         else:
             i += 1  
     return list_of_coordinates
 
 def fitForAllStars(image, list_of_coordinates):
+    mask1 = make_source_mask(image, nsigma=7, npixels=10, dilate_size=1)
+    mask2 = make_source_mask(image, nsigma=7, npixels=25, dilate_size=1)
+    mask = np.logical_and(mask1, np.logical_not(mask2))
+    mean, median, std = sigma_clipped_stats(image, sigma=4.0, mask=mask)
     parameters = []
     for coords in tqdm(list_of_coordinates, desc='stars', leave=False):
         i_begin = np.max([0, coords[0]-20])
@@ -133,12 +139,12 @@ def fitForAllStars(image, list_of_coordinates):
         xy = np.ravel(xy)
         try:
             params, _ = opt.curve_fit(
-                gaussian2D, xy, np.ravel(outcut), p0=initial_guess, bounds=([np.min(xs), np.min(ys), 0, 0, 0, -np.inf], [np.max(xs), np.max(ys), 50, 50, np.inf, np.inf]))
+                gaussian2D, xy, np.ravel(outcut), p0=initial_guess, bounds=([np.min(xs), np.min(ys), 0, 0, 0, -np.inf], [np.max(xs), np.max(ys), 20, 20, np.inf, np.inf]))
         except RuntimeError:
             params = [0, 0, 0, 0, 0]
         except OptimizeWarning:
             params = [0, 0, 0, 0, 0]
-        if params[2] < 30 and params[3] < 30:
+        if params[4]/std > 100 and np.abs(params[2]) > 0.1 and np.abs(params[3] > 0.1) and np.abs(params[2]) < 19.9 and np.abs(params[2]) < 19.9:
             parameters.append(params)
     return parameters
 
@@ -303,20 +309,17 @@ def folderPSF(path_to_folder, path_bias='bias', path_dark='dark', path_flats='fl
         list_of_coordinates = coordinatesOfStars(img)  # find all the stars in the image
         parameters += fitForAllStars(img, list_of_coordinates)
 
-    sigma_x = [x[2] for x in parameters]
-    sigma_y = [x[3] for x in parameters]
-    theta = [x[5] for x in parameters]
-    A = [x[4] for x in parameters]
-    return sigma_x, sigma_y, theta
+    sigma = [np.sqrt(x[2]**2 + x[3]) for x in parameters]        
+    # sigma_x = [x[2] for x in parameters]
+    # sigma_y = [x[3] for x in parameters]
+    # theta = [x[5] for x in parameters]
+    # A = [x[4] for x in parameters]
+    return sigma
 
 
 def loadParameters(angle_and_time):
     """
     Load the raw data obtained from the analysis of 
     """
-    sigma_x = np.array(
-        np.load(angle_and_time + '_sigma_x.npy', allow_pickle=True))
-    sigma_y = np.array(
-        np.load(angle_and_time + '_sigma_y.npy', allow_pickle=True))
-    theta = np.array(np.load(angle_and_time + '_theta.npy', allow_pickle=True))
-    return sigma_x, sigma_y, theta
+    sigma = np.array(np.load(angle_and_time + '_sigma.npy', allow_pickle=True))
+    return sigma
