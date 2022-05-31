@@ -5,9 +5,19 @@ from fonctions import *
 plt.style.use(astropy_mpl_style)
 from multiprocessing import Pool
 
-def treatFolder(folder, master_dir="/Users/lucahartman/Pictures/diff-temps/"):
-    sigma_x, sigma_y, theta = folderPSF(master_dir + folder, path_flats='flat')
+def treatFolder(folder, master_dir="../images-sat/"):
+    sigma_x, sigma_y, theta, A = folderPSF(master_dir + folder, path_flats='flat')
     # save the raw data to avoid running the code againg
+    sigma_x = [x for x in sigma_x if x > 1]
+    sigma_x = np.argpartition(sigma_x, 20)
+    
+    sigma_y = [x for x in sigma_y if x > 1]
+    sigma_y = np.argpartition(sigma_y, 20)
+    
+    theta = [x for x in theta if x > 1]
+    theta = np.argpartition(theta, 20)
+    
+    
     with open('data/' + folder + "_sigma_x.npy", "wb") as file:
         np.save(file, np.asarray(sigma_x))
     with open('data/' + folder + "_sigma_y.npy", "wb") as file:
@@ -17,7 +27,7 @@ def treatFolder(folder, master_dir="/Users/lucahartman/Pictures/diff-temps/"):
 
 
 if __name__ == "__main__":
-    master_dir = "/Users/lucahartman/Pictures/diff-temps/"  # path to folder containing folders
+    master_dir = "../images-sat/"  # path to folder containing folders
     folder_names = []  # list of path to folders
     for f in os.listdir(master_dir):
         if os.path.isdir(master_dir + f):
