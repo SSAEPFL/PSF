@@ -5,16 +5,16 @@ from fonctions import *
 plt.style.use(astropy_mpl_style)
 from multiprocessing import Pool
 
-def treatFolder(folder, master_dir="../images-sat/"):
+def treatFolder(folder, master_dir="../images-astroval-2/"):
     sigma = folderPSF(master_dir + folder, path_flats='flat')
     # save the raw data to avoid running the code againg    
     
-    with open('data/' + folder + "_sigma.npy", "wb") as file:
+    with open('../data-astroval-2-bis/' + folder + "_sigma.npy", "wb") as file:
         np.save(file, np.asarray(sigma))
 
 
 if __name__ == "__main__":
-    master_dir = "../images-sat/"  # path to folder containing folders
+    master_dir = "../images-astroval-2/"  # path to folder containing folders
     folder_names = []  # list of path to folders
     for f in os.listdir(master_dir):
         if os.path.isdir(master_dir + f):
@@ -28,7 +28,7 @@ if __name__ == "__main__":
     
 
     # load the parameters
-    sigma = loadParameters('data/'+folder_names[0])
+    sigma = loadParameters('../data-astroval-2-bis/'+folder_names[0])
 
     # clean the data
     sigma = [x for x in sigma if x > 1 and x < 100]

@@ -296,12 +296,6 @@ def folderPSF(path_to_folder, path_bias='bias', path_dark='dark', path_flats='fl
         if file.endswith(".fit"):
             image_names.append(os.path.join(path_to_folder, file))
 
-    # the values for each image
-    sigma_x = []
-    sigma_y = []
-    theta = []
-    A = []
-
     parameters = []
     for image_name in tqdm(image_names, desc='image', leave=False):
         img = fits.getdata(image_name)  # load image
@@ -309,7 +303,7 @@ def folderPSF(path_to_folder, path_bias='bias', path_dark='dark', path_flats='fl
         list_of_coordinates = coordinatesOfStars(img)  # find all the stars in the image
         parameters += fitForAllStars(img, list_of_coordinates)
 
-    sigma = [np.sqrt(x[2]**2 + x[3]) for x in parameters]        
+    sigma = [np.sqrt(x[2]**2 + x[3]) for x in parameters if not np.isnan(x[2]) and not np.isnan(x[3])]        
     # sigma_x = [x[2] for x in parameters]
     # sigma_y = [x[3] for x in parameters]
     # theta = [x[5] for x in parameters]
